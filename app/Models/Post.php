@@ -19,6 +19,7 @@ class Post
      * @param $excerpt
      * @param $date
      * @param $body
+     * @param $slug
      */
     public function __construct($title, $excerpt, $date, $body, $slug)
     {
@@ -31,30 +32,29 @@ class Post
 
     public static function all()
     {
-        return collect(File::files(resource_path("posts/")))
-            ->map(function ($file) {
-                return YamlFrontMatter::parseFile($file);
-            })
-            ->map(function ($document) {
-                return new Post(
-                    $document->title,
-                    $document->excerpt,
-                    $document->date,
-                    $document->body(),
-                    $document->slug
-                );
-            });
+        return cache()->rememberForever('posts.all', function () {
+            return collect(File::files(resource_path("posts/")))
+                ->map(function ($file) {
+                    return YamlFrontMatter::parseFile($file);
+                })
+                ->map(function ($document) {
+                    return new Post(
+                        $document->title,
+                        $document->excerpt,
+                        $document->date,
+                        $document->body(),
+                        $document->slug
+                    );
+                })
+                ->sortByDesc('date');
+        });
+
     }
 
     public static function find($slug)
     {
-        if (!file_exists($path = resource_path("posts/{$slug}.html"))) {
-            throw new ModelNotFoundException();
-        }
-
-        // Add caching to the asked post for 20 minutes
-        return cache()->remember("posts.{$slug}", now()->addMinutes(20), function () use ($path) {
-            return file_get_contents($path);
+        return cache()->remember('post.{$slug}', now()->addMinutes(20), function () use ($slug) {
+            return static::all()->firstWhere('slug', $slug);
         });
     }
 }
