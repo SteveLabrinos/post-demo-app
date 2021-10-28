@@ -16,4 +16,9 @@ class Post extends Model
 
     // The third option is to ignore the guarded or fillable rules and never
     // allow the create method for any mass assignment
+
+//    public function getRouteKeyName()
+//    {
+//        return 'slug';
+//    }
 }
